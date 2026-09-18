@@ -63,4 +63,19 @@ describe('verifyAccessToken', () => {
     expect(result).toMatchObject(payload)
     expect(revocationCheck).toHaveBeenCalledTimes(1)
   })
+
+  it('surfaces jti on the parsed payload and passes it to the revocation hook', async () => {
+    // A revocation check keys on `jti` (single-token revoke, e.g. logout) —
+    // this pins that the schema doesn't strip it out from under callers.
+    const token = sign({ jwtid: 'access-jti-1' })
+    const revocationCheck = vi.fn().mockResolvedValue(false)
+    const result = await verifyAccessToken(token, { secret: SECRET, revocationCheck })
+    expect(result.jti).toBe('access-jti-1')
+    expect(typeof result.iat).toBe('number')
+    expect(typeof result.exp).toBe('number')
+    expect(revocationCheck).toHaveBeenCalledWith(
+      expect.objectContaining({ jti: 'access-jti-1' }),
+      token,
+    )
+  })
 })
