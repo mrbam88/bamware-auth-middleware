@@ -131,3 +131,8 @@ deploy — see the tracking issue
 ## License
 
 MIT
+
+
+## Why `dist/` is committed
+
+Consumers install this package straight from a git tag. Lambda packaging (`npm install --production --ignore-scripts`) and some CI installs never run `prepare`, so the built output is committed alongside the source. Rebuild (`pnpm build`) and commit `dist/` in the same change whenever `src/` changes; tag the release.
