@@ -1,6 +1,6 @@
 {
   "name": "@bamware/auth-middleware",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Bamware access-token verification: shared TokenPayload schema + Express authenticate middleware",
   "license": "MIT",
   "type": "module",
