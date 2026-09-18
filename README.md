@@ -23,6 +23,9 @@ export const TokenPayloadSchema = z.object({
   role: z.enum(['admin', 'owner', 'staff', 'customer']),
   tenantId: z.string(),
   emailVerified: z.boolean().optional(),
+  jti: z.string().optional(),
+  iat: z.number().optional(),
+  exp: z.number().optional(),
 })
 ```
 

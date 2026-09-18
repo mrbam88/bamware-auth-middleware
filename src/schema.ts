@@ -19,6 +19,18 @@ export const TokenPayloadSchema = z.object({
   // Consumers should treat `undefined` as "unknown / trusted" — don't gate
   // UI on a falsy read when the field isn't present.
   emailVerified: z.boolean().optional(),
+  // jti/iat/exp are already on every access token bamware-auth-service signs
+  // (via jsonwebtoken's `jwtid` option) — these fields just surface what
+  // `jwt.verify()` already decodes. A revocation check (see
+  // `RevocationCheck` in verify.ts) needs `jti` on the parsed payload — if
+  // this schema didn't list it, zod's default object() strips unknown keys
+  // and `payload.jti` would silently be `undefined` for every caller of
+  // `verifyAccessToken`, breaking revocation. Added for auth-service#14
+  // (bamware-auth-service#10 added these to the canonical schema after this
+  // package's schema.ts was first copied from it in #12).
+  jti: z.string().optional(),
+  iat: z.number().optional(),
+  exp: z.number().optional(),
 })
 
 export type TokenPayload = z.infer<typeof TokenPayloadSchema>
