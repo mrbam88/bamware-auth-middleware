@@ -136,3 +136,42 @@ MIT
 ## Why `dist/` is committed
 
 Consumers install this package straight from a git tag. Lambda packaging (`npm install --production --ignore-scripts`) and some CI installs never run `prepare`, so the built output is committed alongside the source. Rebuild (`pnpm build`) and commit `dist/` in the same change whenever `src/` changes; tag the release.
+
+## Proposed v0.1.3: credential generations and token purpose
+
+Coordinated work: `mrbam88/bamware-ai#85`. This proposal does not revoke any
+session by itself and does not release a tag or change deployed consumers.
+
+- `authVersion?: number`: nonnegative **safe integer**. Zero is valid. Unknown
+  fields are still stripped, but this field is retained in the verified
+  payload and passed to the existing revocation callback.
+- `tokenType?: 'access' | 'refresh'`: the shared schema understands both
+  purposes. `verifyAccessToken` accepts only explicit `access` or a missing
+  legacy purpose; it rejects explicit `refresh` before invoking the hook.
+- Missing legacy claims stay missing. This library does not equate an absent
+  generation with zero. Consumers must agree on their legacy migration
+  policy and compare credential generations against authoritative user state.
+- Signature/expiry and payload validation precede the revocation callback.
+  Hook failures propagate; they never return a verified user.
+
+The existing `revocationCheck(payload, token)` API is unchanged. A consumer
+without a revocation check still cannot detect a user's password reset.
+Refresh-token verification remains the issuer's responsibility: it must
+reject explicit access purpose, enforce its legacy policy, and check the
+current generation/refresh-token record before rotating credentials.
+
+### Coordinated rollout
+
+Proposed immutable git version: **v0.1.3**. Merge a reviewed, green PR, then
+publish that tag only after auth-service and every access-token consumer
+agree on purpose/generation semantics. Consumers must pin the release tag
+(or an exact reviewed commit for integration tests); do not move tags.
+The checked-in ESM/CJS/declarations are rebuilt because git consumers can
+install with scripts disabled. No tag or package release is part of this PR.
+
+Rollout must inventory old tokens, user generations, access/refresh issuance,
+revocation callbacks, session caches, and all admin/Assistant consumers.
+Rolling back to middleware/consumers that omit the generation check can
+resurrect revoked credentials; preserving database generations alone does
+not make that rollback safe. Coordinate a fail-closed or token-invalidation
+rollback before production adoption.

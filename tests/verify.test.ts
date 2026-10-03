@@ -79,3 +79,46 @@ describe('verifyAccessToken', () => {
     )
   })
 })
+
+
+describe('credential version and token purpose', () => {
+  it('preserves version zero and later versions for revocation checks', async () => {
+    for (const authVersion of [0, 1, 42, Number.MAX_SAFE_INTEGER]) {
+      const token = sign({}, { ...payload, authVersion, tokenType: 'access' })
+      const revocationCheck = vi.fn().mockResolvedValue(false)
+      const result = await verifyAccessToken(token, { secret: SECRET, revocationCheck })
+      expect(result.authVersion).toBe(authVersion)
+      expect(result.tokenType).toBe('access')
+      expect(revocationCheck).toHaveBeenCalledWith(expect.objectContaining({ authVersion, tokenType: 'access' }), token)
+    }
+  })
+
+  it.each([-1, 1.5, '1', null, Number.MAX_SAFE_INTEGER + 1])('rejects malformed version %s before the hook', async (authVersion) => {
+    const revocationCheck = vi.fn()
+    await expect(verifyAccessToken(sign({}, { ...payload, authVersion }), { secret: SECRET, revocationCheck })).rejects.toThrow(TokenVerificationError)
+    expect(revocationCheck).not.toHaveBeenCalled()
+  })
+
+  it('checks signature before passing version claims to the hook', async () => {
+    const revocationCheck = vi.fn()
+    const token = jwt.sign({ ...payload, authVersion: 7, tokenType: 'access' }, 'wrong-secret')
+    await expect(verifyAccessToken(token, { secret: SECRET, revocationCheck })).rejects.toThrow(TokenVerificationError)
+    expect(revocationCheck).not.toHaveBeenCalled()
+  })
+
+  it.each(['refresh', 'reset', '', null])('rejects non-access purpose %s before the hook', async (tokenType) => {
+    const revocationCheck = vi.fn()
+    await expect(verifyAccessToken(sign({}, { ...payload, tokenType }), { secret: SECRET, revocationCheck })).rejects.toThrow(TokenVerificationError)
+    expect(revocationCheck).not.toHaveBeenCalled()
+  })
+
+  it('preserves absent legacy claims rather than silently assigning a generation', async () => {
+    const result = await verifyAccessToken(sign(), { secret: SECRET })
+    expect(result).not.toHaveProperty('authVersion')
+    expect(result).not.toHaveProperty('tokenType')
+  })
+
+  it('propagates hook failures without returning an authenticated payload', async () => {
+    await expect(verifyAccessToken(sign({}, { ...payload, authVersion: 1 }), { secret: SECRET, revocationCheck: async () => { throw new Error('lookup unavailable') } })).rejects.toThrow('lookup unavailable')
+  })
+})

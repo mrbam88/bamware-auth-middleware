@@ -17,6 +17,8 @@ declare const TokenPayloadSchema: z.ZodObject<{
     role: z.ZodEnum<["admin", "owner", "staff", "customer"]>;
     tenantId: z.ZodString;
     emailVerified: z.ZodOptional<z.ZodBoolean>;
+    authVersion: z.ZodOptional<z.ZodNumber>;
+    tokenType: z.ZodOptional<z.ZodEnum<["access", "refresh"]>>;
     jti: z.ZodOptional<z.ZodString>;
     iat: z.ZodOptional<z.ZodNumber>;
     exp: z.ZodOptional<z.ZodNumber>;
@@ -27,6 +29,8 @@ declare const TokenPayloadSchema: z.ZodObject<{
     role: "admin" | "owner" | "staff" | "customer";
     tenantId: string;
     emailVerified?: boolean | undefined;
+    authVersion?: number | undefined;
+    tokenType?: "access" | "refresh" | undefined;
     jti?: string | undefined;
     iat?: number | undefined;
     exp?: number | undefined;
@@ -37,6 +41,8 @@ declare const TokenPayloadSchema: z.ZodObject<{
     role: "admin" | "owner" | "staff" | "customer";
     tenantId: string;
     emailVerified?: boolean | undefined;
+    authVersion?: number | undefined;
+    tokenType?: "access" | "refresh" | undefined;
     jti?: string | undefined;
     iat?: number | undefined;
     exp?: number | undefined;

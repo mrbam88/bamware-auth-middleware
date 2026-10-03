@@ -10,6 +10,12 @@ var TokenPayloadSchema = z.object({
   // Consumers should treat `undefined` as "unknown / trusted" — don't gate
   // UI on a falsy read when the field isn't present.
   emailVerified: z.boolean().optional(),
+  // Credential generation supplied by the issuer. Preserve absence so each
+  // consumer can apply its explicitly coordinated legacy/revocation policy.
+  authVersion: z.number().int().nonnegative().safe().optional(),
+  // Existing issuers may omit purpose; explicit refresh tokens must never
+  // pass access-token verification even when their claims otherwise match.
+  tokenType: z.enum(["access", "refresh"]).optional(),
   // jti/iat/exp are already on every access token bamware-auth-service signs
   // (via jsonwebtoken's `jwtid` option) — these fields just surface what
   // `jwt.verify()` already decodes. A revocation check (see
@@ -42,6 +48,9 @@ async function verifyAccessToken(token, options) {
   const result = TokenPayloadSchema.safeParse(decoded);
   if (!result.success) {
     throw new TokenVerificationError("Invalid token payload");
+  }
+  if (result.data.tokenType === "refresh") {
+    throw new TokenVerificationError("Invalid token purpose");
   }
   if (options.revocationCheck) {
     const revoked = await options.revocationCheck(result.data, token);
