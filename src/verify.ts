@@ -50,6 +50,10 @@ export async function verifyAccessToken(
     throw new TokenVerificationError('Invalid token payload')
   }
 
+  if (result.data.tokenType === 'refresh') {
+    throw new TokenVerificationError('Invalid token purpose')
+  }
+
   if (options.revocationCheck) {
     const revoked = await options.revocationCheck(result.data, token)
     if (revoked) {
